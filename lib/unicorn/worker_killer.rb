@@ -23,7 +23,7 @@ module Unicorn::WorkerKiller
     sig = :TERM if @@kill_attempts > configuration.max_quit
     sig = :KILL if @@kill_attempts > configuration.max_term
 
-    logger.warn "#{self} send SIG#{sig} (pid: #{worker_pid}) alive: #{alive_sec} sec (trial #{@@kill_attempts})"
+    logger.info "#{self} send SIG#{sig} (pid: #{worker_pid}) alive: #{alive_sec} sec (trial #{@@kill_attempts})"
     Process.kill sig, worker_pid
   end
 
@@ -45,6 +45,19 @@ module Unicorn::WorkerKiller
       app # pretend to be Rack middleware since it was in the past
     end
 
+    def killer_log
+      @kill_log ||= Logger.new("log/logstash_store-unicorn-worker-killer.log")
+      @kill_log.formatter = proc do |severity, time, progname, msg|
+        {
+            severity: severity,
+            timestamp: time,
+            progname: progname,
+            message: msg
+        }.to_json
+      end
+      @kill_log
+    end
+
     def randomize(integer)
       RUBY_VERSION > "1.9" ? Random.rand(integer.abs) : rand(integer)
     end
@@ -58,10 +71,10 @@ module Unicorn::WorkerKiller
       @_worker_check_count += 1
       if @_worker_check_count % @_worker_check_cycle == 0
         rss = GetProcessMem.new.bytes
-        logger.info "#{self}: worker (pid: #{Process.pid}) using #{rss} bytes." if @_verbose
+        killer_log.info "#{self}: worker (pid: #{Process.pid}) using #{rss} bytes. Memory limit is #{@_worker_memory_limit} bytes" if @_verbose
         if rss > @_worker_memory_limit
-          logger.warn "#{self}: worker (pid: #{Process.pid}) exceeds memory limit (#{rss} bytes > #{@_worker_memory_limit} bytes)"
-          Unicorn::WorkerKiller.kill_self(logger, @_worker_process_start)
+          killer_log.info "#{self}: worker (pid: #{Process.pid}) exceeds memory limit (#{rss} bytes > #{@_worker_memory_limit} bytes)"
+          Unicorn::WorkerKiller.kill_self(killer_log, @_worker_process_start)
         end
         @_worker_check_count = 0
       end
@@ -85,6 +98,19 @@ module Unicorn::WorkerKiller
       app # pretend to be Rack middleware since it was in the past
     end
 
+    def killer_log
+      @kill_log ||= Logger.new("log/logstash_store-unicorn-worker-killer.log")
+      @kill_log.formatter = proc do |severity, time, progname, msg|
+        {
+            severity: severity,
+            timestamp: time,
+            progname: progname,
+            message: msg
+        }.to_json
+      end
+      @kill_log
+    end
+
     def randomize(integer)
       RUBY_VERSION > "1.9" ? Random.rand(integer.abs) : rand(integer)
     end
@@ -96,11 +122,11 @@ module Unicorn::WorkerKiller
       @_worker_process_start ||= Time.now
       @_worker_cur_requests ||= @_worker_max_requests_min + randomize(@_worker_max_requests_max - @_worker_max_requests_min + 1)
       @_worker_max_requests ||= @_worker_cur_requests
-      logger.info "#{self}: worker (pid: #{Process.pid}) has #{@_worker_cur_requests} left before being killed" if @_verbose
+      killer_log.info "#{self}: worker (pid: #{Process.pid}) has #{@_worker_cur_requests} left before being killed" if @_verbose
 
       if (@_worker_cur_requests -= 1) <= 0
-        logger.warn "#{self}: worker (pid: #{Process.pid}) exceeds max number of requests (limit: #{@_worker_max_requests})"
-        Unicorn::WorkerKiller.kill_self(logger, @_worker_process_start)
+        killer_log.info "#{self}: worker (pid: #{Process.pid}) exceeds max number of requests (limit: #{@_worker_max_requests})"
+        Unicorn::WorkerKiller.kill_self(killer_log, @_worker_process_start)
       end
     end
   end
