@@ -47,14 +47,14 @@ module Unicorn::WorkerKiller
 
     def killer_log
       @kill_log ||= Logger.new("log/logstash_store-unicorn-worker-killer.log")
-      @kill_log.formatter = proc do |severity, time, progname, msg|
-        {
-            severity: severity,
-            timestamp: time,
-            progname: progname,
-            message: msg
-        }.to_json
-      end
+      # @kill_log.formatter = proc do |severity, time, progname, msg|
+      #   {
+      #       severity: severity,
+      #       timestamp: time,
+      #       progname: progname,
+      #       message: msg
+      #   }.to_json
+      # end
       @kill_log
     end
 
@@ -100,14 +100,14 @@ module Unicorn::WorkerKiller
 
     def killer_log
       @kill_log ||= Logger.new("log/logstash_store-unicorn-worker-killer.log")
-      @kill_log.formatter = proc do |severity, time, progname, msg|
-        {
-            severity: severity,
-            timestamp: time,
-            progname: progname,
-            message: msg
-        }.to_json
-      end
+      # @kill_log.formatter = proc do |severity, time, progname, msg|
+      #   {
+      #       severity: severity,
+      #       timestamp: time,
+      #       progname: progname,
+      #       message: msg
+      #   }.to_json
+      # end
       @kill_log
     end
 
