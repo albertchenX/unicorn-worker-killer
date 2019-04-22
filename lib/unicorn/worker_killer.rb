@@ -46,7 +46,7 @@ module Unicorn::WorkerKiller
     end
 
     def killer_log
-      @kill_log ||= Logger.new("log/logstash_store-unicorn-worker-killer.log")
+      @kill_log ||= Logger.new("log/logstash-unicorn-worker-killer-#{Rails.env}.log")
       @kill_log.formatter = proc do |severity, time, progname, msg|
         {
             severity: severity,
